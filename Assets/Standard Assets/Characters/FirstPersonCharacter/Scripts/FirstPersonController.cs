@@ -10,6 +10,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
     [RequireComponent(typeof (AudioSource))]
     public class FirstPersonController : MonoBehaviour
     {
+        [SerializeField] private bool m_IsSwimming;
+        [SerializeField] private float m_SwimGravityMultiplier;
         [SerializeField] private bool m_IsWalking;
         [SerializeField] private float m_WalkSpeed;
         [SerializeField] private float m_RunSpeed;
@@ -123,7 +125,24 @@ namespace UnityStandardAssets.Characters.FirstPerson
             }
             else
             {
-                m_MoveDir += Physics.gravity*m_GravityMultiplier*Time.fixedDeltaTime;
+                if (!m_IsSwimming)
+                {
+                    m_MoveDir += Physics.gravity * m_GravityMultiplier * Time.fixedDeltaTime;
+                }
+                else
+                {
+                    //Swim
+                    m_MoveDir.x = desiredMove.x * speed;
+                    m_MoveDir.z = desiredMove.z * speed;
+                    m_MoveDir.y += Physics.gravity.y * m_SwimGravityMultiplier *
+                   Time.fixedDeltaTime;
+                    if (m_Jump)
+                    {
+                        m_MoveDir.y = m_JumpSpeed;
+                        m_Jump = false;
+                        m_Jumping = true;
+                    }
+                }
             }
             m_CollisionFlags = m_CharacterController.Move(m_MoveDir*Time.fixedDeltaTime);
 
@@ -255,5 +274,26 @@ namespace UnityStandardAssets.Characters.FirstPerson
             }
             body.AddForceAtPosition(m_CharacterController.velocity*0.1f, hit.point, ForceMode.Impulse);
         }
-    }
+
+        private void OnTriggerEnter(Collider coll)
+        {
+            Debug.Log("entered trigger with " + coll.gameObject.name);
+            if (coll.gameObject.name == "WaterCollider")
+            {
+                m_IsSwimming = true;
+                m_IsWalking = false;
+            }
+        }
+        private void OnTriggerExit(Collider coll)
+        {
+            Debug.Log("left trigger with " + coll.gameObject.name);
+            if (coll.gameObject.name == "WaterCollider")
+            {
+                m_IsSwimming = false;
+                m_IsWalking = true;
+            }
+        }
+    }// end of class
+
+    
 }
